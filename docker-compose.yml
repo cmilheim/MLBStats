@@ -1,0 +1,26 @@
+version: '1.0'
+services:
+  mongodb_container:
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb_data_container:/data/db
+  
+  rabbitmq3:
+    container_name: "rabbitmq"
+    image: rabbitmq:management
+    environment:
+       - RABBITMQ_DEFAULT_USER=cmilheim
+       - RABBITMQ_DEFAULT_PASS=CH@!!eng3r11
+    ports:
+       # AMQP protocol port
+       - 5672:5672
+       # HTTP management UI
+       - 15672:15672
+
+volumes:
+  mongodb_data_container:
