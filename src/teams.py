@@ -47,6 +47,7 @@ def main(debug):
         try:
             method, header, body = channel.basic_get(queue='teams')
             if method is None:
+                teamLogs.info("Teams queue is empty. Exiting.")
                 break
             dtag = method.delivery_tag
             teamLogs.debug("method - {}".format(method))
@@ -54,13 +55,11 @@ def main(debug):
             teamLogs.debug("header - {}".format(header))
             teamLogs.debug("body - {}".format(body))
             teamLogs.debug("body decoded - {}".format(body.decode("utf-8")))
-            if body is None:
-                teamLogs.info("Teams queue is empty. Exiting.")
-                break
         except Exception as e:
             teamLogs.error("Error consuming from RabbitMQ: {}".format(e))
             sys.exit(1)
 
+        # Perform upsert on MongoDB Teams collection
         teamLogs.info("RabbitMQ message received.  Updating MongoDB")
         try:            
             database = client["MLBStats"]
@@ -69,20 +68,40 @@ def main(debug):
 
             for k,v in teamsDict.items():
                 teamLogs.debug("k:v - {}:{}".format(str(k),v))
-                res = collection.find_one_and_update(filter={'id': teamsDict['id']}, update={'$set': {k: v}}, upsert=True)
+                collection.find_one_and_update(
+                    filter={'teamId': teamsDict['teamId']}, 
+                    update={'$set': {k: v}}, 
+                    upsert=True
+                )
 
-            res = collection.find_one_and_update(filter={'id': teamsDict['id']}, update={'$set': {'lastUpdate': datetime.now()}}, upsert=True)
-            teamLogs.info("Mongo Insert Returned: {}".format(res))
+            collection.find_one_and_update(
+                filter={'teamId': teamsDict['teamId']}, 
+                update={'$set': {'lastUpdate': datetime.now()}}, 
+                upsert=True
+            )
+            
+            teamLogs.info("Mongo upsert completed")
         except Exception as e:
             teamLogs.error("Error connecting to Mongo: {}".format(e))
             sys.exit(1)
 
+        # Acknowledge RabbitMQ Teams message
         teamLogs.info("Acknowledging RabbitMQ message")
         try:
             if channel.is_open:
                 channel.basic_ack(dtag)
         except Exception as e:
             teamLogs.error("Error acknowleding RabbitMQ message")
+            sys.exit(1)
+
+        # Send Roster job to RabbitMQ
+        teamLogs.info("Sending teamId to roster queue")
+        try:
+            channel.queue_declare(queue='roster')
+            job_body = {"teamId": teamsDict['teamId']}
+            channel.basic_publish(exchange='', routing_key='roster', body=json.dumps(job_body))
+        except Exception as e:
+            teamLogs.error("Error sending teamId to roster queue: {}".format(e))
             sys.exit(1)
 
     teamLogs.info("Closing RabbitMQ connection")

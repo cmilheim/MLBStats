@@ -26,6 +26,7 @@ def main(debug):
 
     for team in range(len(teams)):
         # Reorganize some keys
+        teams[team]['teamId'] = teams[team]['id']
         teams[team]['venueId'] = teams[team]['venue']['id']
         teams[team]['venueName'] = teams[team]['venue']['name']
         teams[team]['leagueName'] = teams[team]['league']['name']
@@ -33,7 +34,7 @@ def main(debug):
 
         # Remove old keys
         keys_to_remove = (
-                'springLeague', 'link', 'springVenue', 'teamCode', 'fileCode', 'sport',
+                'id', 'springLeague', 'link', 'springVenue', 'teamCode', 'fileCode', 'sport',
                 'venue', 'league', 'division'
                 )
         for key in keys_to_remove:
