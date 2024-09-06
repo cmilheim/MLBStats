@@ -22,5 +22,20 @@ services:
        # HTTP management UI
        - 15672:15672
 
+  db:
+    image: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: 'cmilheim'
+      MYSQL_PASSWORD: 'userpassword'
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - my-db:/var/lib/mysql
+
 volumes:
   mongodb_data_container:
+  my-db:
