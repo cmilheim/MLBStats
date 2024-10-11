@@ -36,6 +36,16 @@ services:
     volumes:
       - my-db:/var/lib/mysql
 
+  mlbstats-airflow:
+    image: mlbstats-airflow:latest
+    volumes:
+      - ./airflow:/opt/airflow
+  
+    ports:
+      - "8080:8080"
+  
+    command: airflow standalone
+
 volumes:
   mongodb_data_container:
   my-db:
